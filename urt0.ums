@@ -1,0 +1,53 @@
+
+
+.section init
+    .temps r6, r7
+    .zero r0
+
+.section stk
+    .space 100000
+    endstack:
+
+.section stk
+    .space 10000
+    value_stack:
+
+.section init
+    r0 := 0
+    r2 := endstack
+    r3 := value_stack           // r3 takes value stack
+
+.section text
+    main:
+        output "in main\n"
+
+    waiting:
+        output "waiting\n"
+        r1 := input()
+
+    waiting_with_character:
+        // need to check for EOF (not sure how to do this)
+        //if (r1 == 0) goto exit using r5
+
+        // branch indirect through jump table
+        r5 := jumptable + r1
+        r5 := m[r0][r5]
+        r4 := r1 - 48               // put actual digit value in r4
+        r1 := r5
+        r5 := 0                        // r5 gets 0 indicating new numeral
+        goto r1                      // goto input handling
+
+    entering: 
+        output "entering\n"
+        r1 := input()
+
+        r5 := jumptable + r1
+        r5 := m[r0][r5]
+        r4 := r1 - 48               // put digit we want in r4
+        r1 := r5
+        r5 := 1                     // r5 gets 1 indicating entering
+        goto r1
+
+    exit:
+        output "exit\n"
+        halt

@@ -1,0 +1,93 @@
+.section init
+    .temps r6, r7
+    .zero r0 
+
+.section rodata
+    .space 256
+    jumptable:
+
+.section init
+    r0 := 0
+    
+    r3 := 0             // counter   
+    jumptable_init:
+        r4 := jumptable + r3        // get memory address
+        m[r0][r4] := input_error    // init to input_error
+        r3 := r3 + 1                // increment counter
+        if (r3 <s 256) goto jumptable_init using r5
+
+    r3 := 48
+    jumptable_set_digits:
+        r4 := jumptable + r3
+        m[r0][r4] := digit
+        r3 := r3 + 1
+        if (r3 <s 58) goto jumptable_set_digits using r5
+
+    jumptable_set_schar:
+        r4 := jumptable + 32
+        m[r0][r4] := space
+
+.section text
+
+    digit:
+        push r1 on stack r2      
+        //push r3 on stack r2
+        push r4 on stack r2
+
+        //r3 := m[r0][r2 + 1]
+
+        // entering 
+        if (r5 == 1) goto continue_num using r4
+
+        // waiting (new digit)
+        if (r5 == 0) goto new_num using r4
+
+        // else exit (error)
+        goto finish
+
+    new_num:
+        output "new num\n"
+        
+        r4 := m[r0][r2]                 // get r4 from call stack
+        push r4 on stack r3             // add it to value stack as is
+        goto finish_digit
+
+    continue_num:
+        output "continued num\n"
+
+        //r3 := m[r0][r2 + 1]             // get value stack
+        pop r5 off stack r3             // get last value on val stack
+        r5 := r5 * 10                   // move r5 1 digit over
+        r4 := m[r0][r2]                 // get r4 from call stack
+        r4 := r4 + r5                   // combine r4 with last stack val
+        push r4 on stack r3             // add it to stack
+
+        goto finish_digit
+
+    space:
+        goto finish_schar
+
+    input_error:
+        output "unknown character\n"
+        goto exit
+        halt
+
+    finish_schar:
+        pop r4 off stack r2
+        //pop r3 off stack r2
+        pop r1 off stack r2
+
+        goto waiting
+
+    finish_digit:
+        r4 := m[r0][r3]
+        goto printd linking r1
+
+        pop r4 off stack r2
+        //pop r3 off stack r2
+        pop r1 off stack r2
+
+        goto entering
+        
+        
+        

@@ -1,0 +1,81 @@
+// printd.ums
+// Takes in a umasm word, outputs the decimal representation
+
+.section init
+    .temps r6, r7
+    .zero r0
+
+.section stk
+    .space 32
+    digits_stack:
+
+.section text
+    printd: 
+        push r1 on stack r2         // return address
+        push r3 on stack r2         // keep value stack safe
+        push r4 on stack r2         
+
+        // let r1 hold digit stack
+        r1 := digits_stack
+
+        // define counter in r4
+        r4 := 0
+
+        // r3 holds original value
+        r3 := m[r0][r2]         // we want data in r4
+
+        if (r3 == 0) goto zero_case
+        if (r3 <s 0) goto most_negative using r5
+
+    // push each digit onto stack to print later
+    loop:
+        r4 := r4 + 1            // increment counter
+        r5 := r3 mod 10         // get last digit
+        push r5 on stack r1     // 
+
+        r3 := r3 / 10           // modify original
+
+        if (r3 == 0) goto print_digits       // base case
+        goto loop
+
+        
+    print_digits:
+        pop r5 off stack r1
+        output r5 + 48
+        r4 := r4 - 1
+        if (r4 == 0) goto finish
+        goto print_digits
+
+    zero_case:
+        r7 := 48
+        output r7
+        goto finish
+
+    most_negative:
+        output 45
+        if (r3 >s 0) goto continue using r5     // most negative
+        r3 := r3 * -1
+        goto loop                               // else start loop
+
+    continue:
+        r7 := 0x80000000
+        // -2147483648
+        output 50
+        output 49
+        output 52
+        output 55
+        output 52
+        output 56
+        output 51
+        output 54
+        output 52
+        output 56
+
+    finish:
+        output "\n"
+        pop r4 off stack r2
+        pop r3 off stack r2
+        pop r1 off stack r2 
+
+        goto r1
+        halt
