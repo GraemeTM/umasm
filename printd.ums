@@ -13,7 +13,9 @@
     printd: 
         push r1 on stack r2         // return address
         push r3 on stack r2         // keep value stack safe
-        push r4 on stack r2         
+        push r4 on stack r2        
+
+        output ">>> " 
 
         // let r1 hold digit stack
         r1 := digits_stack

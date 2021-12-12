@@ -27,14 +27,51 @@
         r4 := jumptable + 32
         m[r0][r4] := space
 
+        r4 := jumptable + 10
+        m[r0][r4] := newline
+        
+        r4 := jumptable + 43
+        m[r0][r4] := add
+
+        r4 := jumptable + 45
+        m[r0][r4] := subtract
+
+        r4 := jumptable + 42
+        m[r0][r4] := multiply
+
+        r4 := jumptable + 47
+        m[r0][r4] := divide
+
+        r4 := jumptable + 124
+        m[r0][r4] := bitwise_or
+
+        r4 := jumptable + 38
+        m[r0][r4] := bitwise_and
+
+        r4 := jumptable + 99
+        m[r0][r4] := change_sign
+
+        r4 := jumptable + 126
+        m[r0][r4] := bitwise_complement
+                
+        r4 := jumptable + 115
+        m[r0][r4] := swap
+        
+        r4 := jumptable + 100
+        m[r0][r4] := duplicate
+               
+        r4 := jumptable + 112
+        m[r0][r4] := pop_value
+
+        r4 := jumptable + 122
+        m[r0][r4] := remove_values
+        
 .section text
 
     digit:
         push r1 on stack r2      
         //push r3 on stack r2
         push r4 on stack r2
-
-        //r3 := m[r0][r2 + 1]
 
         // entering 
         if (r5 == 1) goto continue_num using r4
@@ -43,19 +80,20 @@
         if (r5 == 0) goto new_num using r4
 
         // else exit (error)
-        goto finish
+        goto finish_digit
 
     new_num:
-        output "new num\n"
-        
         r4 := m[r0][r2]                 // get r4 from call stack
-        push r4 on stack r3             // add it to value stack as is
+        push r4 on stack r3              // add it to value stack as is
+
+        r5 := m[r0][value_stack_depth]
+        m[r0][value_stack_depth] := r5 + 1
+
         goto finish_digit
 
     continue_num:
-        output "continued num\n"
+        // no need to modify stack depth
 
-        //r3 := m[r0][r2 + 1]             // get value stack
         pop r5 off stack r3             // get last value on val stack
         r5 := r5 * 10                   // move r5 1 digit over
         r4 := m[r0][r2]                 // get r4 from call stack
@@ -67,10 +105,192 @@
     space:
         goto finish_schar
 
+    newline:
+        // print everything on the value stack until pointer == value_stack
+        r4 := 0                           // counter
+        loop_newline:
+            push r4 on stack r2                 // put counter on call stack
+
+            // get value stack depth
+            r4 := m[r0][value_stack_depth]
+
+            // check if counter has reached end of stack
+            if (m[r0][r2] == r4) goto finish_schar using r5
+
+            pop r4 off stack r2
+            r5 := r3 + r4
+            push r4 on stack r2
+            
+            r4 := m[r0][r5]                     // get value at counter
+            goto printd linking r1
+
+            pop r4 off stack r2                 // get counter back
+            r4 := r4 + 1
+            
+            goto loop_newline
+        
+        goto finish_schar
+
+    add:
+        r4 := m[r0][value_stack_depth]
+        if (r4 <s 2) goto underflow_error_2 using r5
+        r4 := r4 - 1
+        m[r0][value_stack_depth] := r4
+        pop r4 off stack r3
+        pop r5 off stack r3
+        r4 := r5 + r4
+        push r4 on stack r3
+        goto finish_schar
+
+    subtract:
+        r4 := m[r0][value_stack_depth]
+        if (r4 <s 2) goto underflow_error_2 using r5
+        r4 := r4 - 1
+        m[r0][value_stack_depth] := r4
+        pop r4 off stack r3
+        pop r5 off stack r3
+        r4 := r5 - r4
+        push r4 on stack r3
+        goto finish_schar
+
+    multiply:
+        r4 := m[r0][value_stack_depth]
+        if (r4 <s 2) goto underflow_error_2 using r5
+        r4 := r4 - 1
+        m[r0][value_stack_depth] := r4
+        pop r4 off stack r3
+        pop r5 off stack r3
+        r4 := r4 * r5
+        push r4 on stack r3
+        goto finish_schar
+
+    divide:
+        r4 := m[r0][value_stack_depth]
+        if (r4 <s 2) goto underflow_error_2 using r5
+
+        r4 := m[r0][r3]
+        r5 := m[r0][r3 + 1]
+        if (r4 == 0) goto divide_error using r1
+        pop stack r3
+        pop stack r3
+
+        push r3 on stack r2
+        
+        r3 := 0
+        if (r5 >=s 0) goto check1 using r1
+        r3 := ~r3
+        r5 := ~r5
+        r5 := r5 + 1
+
+        check1:
+        if (r4 >=s 0) goto check2 using r1
+        r3 := ~r3
+        r4 := ~r4
+        r4 := r4 + 1
+
+        check2:
+        r4 := r5 / r4
+
+        if (r3 == 0) goto pos using r5
+        r4 := ~r4
+        r4 := r4 + 1
+
+        pos: 
+        pop r3 off stack r2
+        push r4 on stack r3
+
+        r4 := m[r0][value_stack_depth]
+        r4 := r4 - 1
+        m[r0][value_stack_depth] := r4
+
+        r0 := 0
+        goto finish_schar
+
+    bitwise_or:
+        r4 := m[r0][value_stack_depth]
+        if (r4 <s 2) goto underflow_error_2 using r5
+        r4 := r4 - 1
+        m[r0][value_stack_depth] := r4
+
+        pop r4 off stack r3
+        pop r5 off stack r3
+        r4 := r4 | r5
+        push r4 on stack r3
+        goto finish_schar
+
+    bitwise_and:
+        r4 := m[r0][value_stack_depth]
+        if (r4 <s 2) goto underflow_error_2 using r5
+        r4 := r4 - 1
+        m[r0][value_stack_depth] := r4
+        pop r4 off stack r3
+        pop r5 off stack r3
+        r4 := r4 & r5
+        push r4 on stack r3
+        goto finish_schar
+
+    change_sign:
+        r4 := m[r0][value_stack_depth]
+        if (r4 == 0) goto underflow_error_1 using r5
+        r4 := m[r0][r3]
+        r4 := ~r4
+        r4 := r4 + 1
+        m[r0][r3] := r4
+        goto finish_schar
+
+    bitwise_complement:
+        r4 := m[r0][value_stack_depth]
+        if (r4 == 0) goto underflow_error_1 using r5
+        r4 := m[r0][r3]
+        r4 := ~r4
+        m[r0][r3] := r4
+        goto finish_schar
+
+    swap:
+        r4 := m[r0][value_stack_depth]
+        if (r4 <s 2) goto underflow_error_2 using r5
+
+        r4 := m[r0][r3]
+        r5 := m[r0][r3 + 1]
+        m[r0][r3] := r5
+        m[r0][r3 + 1] := r4
+        goto finish_schar
+
+    duplicate:
+        r4 := m[r0][value_stack_depth]
+        if (r4 == 0) goto underflow_error_1 using r5
+        r4 := r4 + 1
+        m[r0][value_stack_depth] := r4
+        r4 := m[r0][r3]
+        push r4 on stack r3
+        goto finish_schar
+        
+    pop_value:
+        r4 := m[r0][value_stack_depth]
+        if (r4 == 0) goto underflow_error_1 using r5
+        r4 := r4 - 1
+        m[r0][value_stack_depth] := r4
+        pop stack r3
+
+        goto finish_schar
+
+    remove_values:
+        loop_remval:
+            r4 := m[r0][value_stack_depth]
+            if (r4 == 0) goto finish_schar using r5
+            r4 := r4 - 1
+            m[r0][value_stack_depth] := r4
+            pop stack r3
+            goto loop_remval
+
+        goto finish_schar
+
     input_error:
-        output "unknown character\n"
-        goto exit
-        halt
+        output "Unknown character '"
+        r4 := r4 + 48
+        output r4
+        output "'\n"
+        goto finish_schar
 
     finish_schar:
         pop r4 off stack r2
@@ -80,14 +300,21 @@
         goto waiting
 
     finish_digit:
-        r4 := m[r0][r3]
-        goto printd linking r1
-
         pop r4 off stack r2
         //pop r3 off stack r2
         pop r1 off stack r2
 
         goto entering
         
-        
-        
+    
+    divide_error:
+        output "Division by zero\n"
+        goto finish_schar
+
+    underflow_error_1:
+        output "Stack underflow---expected at least 1 element\n"
+        goto finish_schar
+
+    underflow_error_2:
+        output "Stack underflow---expected at least 2 elements\n"
+        goto finish_schar

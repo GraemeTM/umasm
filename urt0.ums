@@ -12,34 +12,43 @@
     .space 10000
     value_stack:
 
+.section data
+    .space 1
+    value_stack_depth:
+
 .section init
     r0 := 0
     r2 := endstack
-    r3 := value_stack           // r3 takes value stack
+    //r3 := value_stack           // r3 takes number of elems on value stack
+
 
 .section text
     main:
-        output "in main\n"
+        m[r0][value_stack_depth] := 0
+        //r5 := m[r0][value_stack_depth]
+        //m[r0][value_stack_depth] := r5 + 1
+
+        //output m[r0][value_stack_depth]
 
     waiting:
-        output "waiting\n"
         r1 := input()
 
     waiting_with_character:
         // need to check for EOF (not sure how to do this)
-        //if (r1 == 0) goto exit using r5
+        if (r1 == -1) goto exit using r5
 
         // branch indirect through jump table
         r5 := jumptable + r1
         r5 := m[r0][r5]
-        r4 := r1 - 48               // put actual digit value in r4
+        r4 := r1 - 48                // put actual digit value in r4
         r1 := r5
-        r5 := 0                        // r5 gets 0 indicating new numeral
-        goto r1                      // goto input handling
+        r5 := 0                      // r5 gets 0 indicating new numeral
+        
+        goto r1                      // goto calc40 handling
 
     entering: 
-        output "entering\n"
         r1 := input()
+        if (r1 == -1) goto exit using r5
 
         r5 := jumptable + r1
         r5 := m[r0][r5]
@@ -49,5 +58,4 @@
         goto r1
 
     exit:
-        output "exit\n"
         halt
