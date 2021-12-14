@@ -72,12 +72,12 @@
         output 54
         output 52
         output 56
+        goto finish using r5
 
     finish:
         output "\n"
         pop r4 off stack r2
         pop r3 off stack r2
         pop r1 off stack r2 
-
         goto r1
         halt

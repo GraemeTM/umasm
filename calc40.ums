@@ -25,7 +25,7 @@
 
     jumptable_set_schar:
         r4 := jumptable + 32
-        m[r0][r4] := space
+        m[r0][r4] := space_char
 
         r4 := jumptable + 10
         m[r0][r4] := newline
@@ -66,6 +66,8 @@
         r4 := jumptable + 122
         m[r0][r4] := remove_values
         
+        r3 := value_stack
+        
 .section text
 
     digit:
@@ -102,33 +104,31 @@
 
         goto finish_digit
 
-    space:
+    space_char:
         goto finish_schar
 
     newline:
         // print everything on the value stack until pointer == value_stack
-        r4 := 0                           // counter
+        r4 := 0                       // counter
         loop_newline:
-            push r4 on stack r2                 // put counter on call stack
+            push r4 on stack r2                  // put counter on call stack
 
             // get value stack depth
             r4 := m[r0][value_stack_depth]
 
             // check if counter has reached end of stack
-            if (m[r0][r2] == r4) goto finish_schar using r5
+            if (m[r0][r2] == r4) goto finish_newline using r5
 
             pop r4 off stack r2
             r5 := r3 + r4
             push r4 on stack r2
             
-            r4 := m[r0][r5]                     // get value at counter
+            r4 := m[r0][r5]                 // get value at counter
             goto printd linking r1
-
-            pop r4 off stack r2                 // get counter back
-            r4 := r4 + 1
             
+            pop r4 off stack r2              // get counter back
+            r4 := r4 + 1
             goto loop_newline
-        
         goto finish_schar
 
     add:
@@ -202,8 +202,7 @@
         r4 := m[r0][value_stack_depth]
         r4 := r4 - 1
         m[r0][value_stack_depth] := r4
-
-        r0 := 0
+        
         goto finish_schar
 
     bitwise_or:
@@ -232,7 +231,7 @@
     change_sign:
         r4 := m[r0][value_stack_depth]
         if (r4 == 0) goto underflow_error_1 using r5
-        r4 := m[r0][r3]
+        r4 := m[r0][r3]; 
         r4 := ~r4
         r4 := r4 + 1
         m[r0][r3] := r4
@@ -249,11 +248,12 @@
     swap:
         r4 := m[r0][value_stack_depth]
         if (r4 <s 2) goto underflow_error_2 using r5
+        
+        pop r4 off stack r3
+        pop r5 off stack r3
+        push r4 on stack r3
+        push r5 on stack r3
 
-        r4 := m[r0][r3]
-        r5 := m[r0][r3 + 1]
-        m[r0][r3] := r5
-        m[r0][r3 + 1] := r4
         goto finish_schar
 
     duplicate:
@@ -318,3 +318,7 @@
     underflow_error_2:
         output "Stack underflow---expected at least 2 elements\n"
         goto finish_schar
+        
+    finish_newline:
+        pop r4 off stack r2
+        goto finish_schar using r5
