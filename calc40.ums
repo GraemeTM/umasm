@@ -2,10 +2,12 @@
     .temps r6, r7
     .zero r0 
 
+// allocate jumptable
 .section rodata
     .space 256
     jumptable:
 
+// initialize jumptable
 .section init
     r0 := 0
     
@@ -16,13 +18,15 @@
         r3 := r3 + 1                // increment counter
         if (r3 <s 256) goto jumptable_init using r5
 
+    // set all digit areas in jumptable to point to digit section
     r3 := 48
-    jumptable_set_digits:
+    jumptable_set_digits:           
         r4 := jumptable + r3
         m[r0][r4] := digit
         r3 := r3 + 1
         if (r3 <s 58) goto jumptable_set_digits using r5
 
+    // set all special characters (operators) in jump table
     jumptable_set_schar:
         r4 := jumptable + 32
         m[r0][r4] := space_char
@@ -70,29 +74,34 @@
         
 .section text
 
+    // Handles digit input by going to new_num or continued_num depending on
+    // contents of register r5 (from urt0.ums)
     digit:
-        push r1 on stack r2      
-        //push r3 on stack r2
-        push r4 on stack r2
+        // note -- reserved r3 for value stack, so don't push it onto callstack
+        push r1 on stack r2                 // bookkeeping
+        push r4 on stack r2                 
 
-        // entering 
+        // entering (continued number)
         if (r5 == 1) goto continue_num using r4
 
         // waiting (new digit)
         if (r5 == 0) goto new_num using r4
 
-        // else exit (error)
+        // else exit (error), this should never occur
         goto finish_digit
 
+    // Add a single digit number onto the value stack (first numeral)
     new_num:
         r4 := m[r0][r2]                 // get r4 from call stack
-        push r4 on stack r3              // add it to value stack as is
+        push r4 on stack r3             // add it to value stack as is
 
         r5 := m[r0][value_stack_depth]
-        m[r0][value_stack_depth] := r5 + 1
+        m[r0][value_stack_depth] := r5 + 1      // increment stack depth
 
         goto finish_digit
 
+    // Add an additional digit to an existing number on the value stack,
+    // inplace (existing number gets popped, modified, then pushed)
     continue_num:
         // no need to modify stack depth
 
@@ -104,11 +113,12 @@
 
         goto finish_digit
 
+    // space character: just go back to waiting state
     space_char:
         goto finish_schar
 
+    // newline: Print contents of stack
     newline:
-        // print everything on the value stack until pointer == value_stack
         r4 := 0                       // counter
         loop_newline:
             push r4 on stack r2                  // put counter on call stack
@@ -120,171 +130,218 @@
             if (m[r0][r2] == r4) goto finish_newline using r5
 
             pop r4 off stack r2
-            r5 := r3 + r4
+            r5 := r3 + r4                   // get pointer to value location
             push r4 on stack r2
             
-            r4 := m[r0][r5]                 // get value at counter
+            r4 := m[r0][r5]                 // get value
             goto printd linking r1
             
-            pop r4 off stack r2              // get counter back
-            r4 := r4 + 1
-            goto loop_newline
+            pop r4 off stack r2             // get counter back
+            r4 := r4 + 1                    // increment counter
+            goto loop_newline               // loop!
+
         goto finish_schar
 
+    // Add: Pops the top two numbers, adds them, and pushes the result to the 
+    //      value stack
     add:
+        // Check for stack underflow
         r4 := m[r0][value_stack_depth]
-        if (r4 <s 2) goto underflow_error_2 using r5
-        r4 := r4 - 1
-        m[r0][value_stack_depth] := r4
-        pop r4 off stack r3
-        pop r5 off stack r3
-        r4 := r5 + r4
-        push r4 on stack r3
+        if (r4 <s 2) goto underflow_error_2 using r5 
+
+        r4 := r4 - 1                        
+        m[r0][value_stack_depth] := r4      // decrement stack depth
+
+        pop r4 off stack r3                 
+        pop r5 off stack r3                 // pop valuess
+        r4 := r5 + r4                       // add
+        push r4 on stack r3                 // push result to stack
         goto finish_schar
 
+    // Subtract: Pops the top two numbers, subtracts the first from the second, 
+    //      and pushes the result to the value stack
     subtract:
+        // Check for stack underflow
         r4 := m[r0][value_stack_depth]
         if (r4 <s 2) goto underflow_error_2 using r5
+
         r4 := r4 - 1
-        m[r0][value_stack_depth] := r4
-        pop r4 off stack r3
-        pop r5 off stack r3
-        r4 := r5 - r4
-        push r4 on stack r3
+        m[r0][value_stack_depth] := r4      // decrement stack depth
+
+        pop r4 off stack r3                 
+        pop r5 off stack r3                 // pop values
+        r4 := r5 - r4                       // subtract
+        push r4 on stack r3                 // push result to stack
         goto finish_schar
 
+    // Mult: Pop the top two numbers, multiply them, and push the result to the 
+    //      value stack
     multiply:
+        // Check for underflow error 
         r4 := m[r0][value_stack_depth]
         if (r4 <s 2) goto underflow_error_2 using r5
+
         r4 := r4 - 1
-        m[r0][value_stack_depth] := r4
+        m[r0][value_stack_depth] := r4      // decrement stack depth
+
         pop r4 off stack r3
-        pop r5 off stack r3
-        r4 := r4 * r5
-        push r4 on stack r3
+        pop r5 off stack r3                 // pop values
+        r4 := r4 * r5                       // multiply
+        push r4 on stack r3                 // push result to stack
         goto finish_schar
 
+    // Divide: Pops the top two numbers, divides the first with the second, 
+    //      and pushes the result to the value stack
     divide:
+        // Check for underflow
         r4 := m[r0][value_stack_depth]
         if (r4 <s 2) goto underflow_error_2 using r5
 
+        // Check for division by 0
         r4 := m[r0][r3]
         r5 := m[r0][r3 + 1]
         if (r4 == 0) goto divide_error using r1
-        pop stack r3
+
+        pop stack r3                        // division is good, pop values
         pop stack r3
 
-        push r3 on stack r2
+        push r3 on stack r2                 // push r3 so we can use it as flag
         
         r3 := 0
         if (r5 >=s 0) goto check1 using r1
-        r3 := ~r3
+        r3 := ~r3                           // flag change 1
         r5 := ~r5
-        r5 := r5 + 1
+        r5 := r5 + 1                        // r5 negative, change sign
 
         check1:
         if (r4 >=s 0) goto check2 using r1
-        r3 := ~r3
+        r3 := ~r3                           // flag change 2
         r4 := ~r4
-        r4 := r4 + 1
+        r4 := r4 + 1                        // r4 negative, change sign
 
         check2:
-        r4 := r5 / r4
+        r4 := r5 / r4                       // do division (both positive)
 
-        if (r3 == 0) goto pos using r5
+        if (r3 == 0) goto pos using r5      // check flag, change sign if needed
         r4 := ~r4
         r4 := r4 + 1
 
         pos: 
-        pop r3 off stack r2
-        push r4 on stack r3
+        pop r3 off stack r2                 // get value stack ptr back
+        push r4 on stack r3                 // push result to stack
 
         r4 := m[r0][value_stack_depth]
         r4 := r4 - 1
-        m[r0][value_stack_depth] := r4
+        m[r0][value_stack_depth] := r4      // decrement value stack depth
         
         goto finish_schar
 
+    // Bitwise or: Pops the top two numbers, performs a bitwise or, and pushes 
+    //              the result to the value stack
     bitwise_or:
+        // Check for underflow error
         r4 := m[r0][value_stack_depth]
         if (r4 <s 2) goto underflow_error_2 using r5
+
         r4 := r4 - 1
-        m[r0][value_stack_depth] := r4
+        m[r0][value_stack_depth] := r4      // decrement value stack depth
 
         pop r4 off stack r3
-        pop r5 off stack r3
-        r4 := r4 | r5
-        push r4 on stack r3
+        pop r5 off stack r3                 // pop values
+        r4 := r4 | r5                       // perform bitwise or
+        push r4 on stack r3                 // push result to value stack
         goto finish_schar
 
+    // Bitwise and: Pops the top two numbers, performs a bitwise and, and pushes 
+    //              the result to the value stack
     bitwise_and:
+        // Check for underflow error
         r4 := m[r0][value_stack_depth]
         if (r4 <s 2) goto underflow_error_2 using r5
+
         r4 := r4 - 1
-        m[r0][value_stack_depth] := r4
+        m[r0][value_stack_depth] := r4      // decrement value stack depth
+
         pop r4 off stack r3
-        pop r5 off stack r3
-        r4 := r4 & r5
-        push r4 on stack r3
+        pop r5 off stack r3                 // pop values
+        r4 := r4 & r5                       // perform bitwise and
+        push r4 on stack r3                 // push result to value stack
         goto finish_schar
 
+    // Change sign: Changes top number's sign, pushes result to value stack
     change_sign:
+        // Check for underflow error
         r4 := m[r0][value_stack_depth]
         if (r4 == 0) goto underflow_error_1 using r5
-        r4 := m[r0][r3]; 
+
+        r4 := m[r0][r3];                    // Get value
         r4 := ~r4
-        r4 := r4 + 1
-        m[r0][r3] := r4
+        r4 := r4 + 1                        // Change sign
+        m[r0][r3] := r4                     // reassign value
         goto finish_schar
 
+    // Bitwise complement: Takes bitwise complement of top number, modifies top
+    //                      stack value to the result
     bitwise_complement:
+        // Check for underflow error
         r4 := m[r0][value_stack_depth]
         if (r4 == 0) goto underflow_error_1 using r5
-        r4 := m[r0][r3]
-        r4 := ~r4
-        m[r0][r3] := r4
+
+        r4 := m[r0][r3]                     // get value
+        r4 := ~r4                           // take complement
+        m[r0][r3] := r4                     // reassign value
         goto finish_schar
 
     swap:
+        // Check for underflow error
         r4 := m[r0][value_stack_depth]
         if (r4 <s 2) goto underflow_error_2 using r5
         
-        pop r4 off stack r3
-        pop r5 off stack r3
-        push r4 on stack r3
-        push r5 on stack r3
+        pop r4 off stack r3                 // get value 1
+        pop r5 off stack r3                 // get value 2
+        push r4 on stack r3                 // reassign value 1
+        push r5 on stack r3                 // reassign value 2
 
         goto finish_schar
 
+    // Duplicate: Push copy of top number to value stack
     duplicate:
+        // Check for underflow error
         r4 := m[r0][value_stack_depth]
         if (r4 == 0) goto underflow_error_1 using r5
+
         r4 := r4 + 1
-        m[r0][value_stack_depth] := r4
-        r4 := m[r0][r3]
-        push r4 on stack r3
+        m[r0][value_stack_depth] := r4      // increment stack depth
+
+        r4 := m[r0][r3]                     // get top value
+        push r4 on stack r3                 // duplicate and push
         goto finish_schar
         
+    // Pop value: Take the top value off the value stack
     pop_value:
+        // Check for underflow error
         r4 := m[r0][value_stack_depth]
         if (r4 == 0) goto underflow_error_1 using r5
+
         r4 := r4 - 1
-        m[r0][value_stack_depth] := r4
-        pop stack r3
+        m[r0][value_stack_depth] := r4      // decrement stack depth
+        pop stack r3                        // pop value
 
         goto finish_schar
 
+    // Remove values: removes all values on the stack
     remove_values:
         loop_remval:
-            r4 := m[r0][value_stack_depth]
-            if (r4 == 0) goto finish_schar using r5
+            r4 := m[r0][value_stack_depth]              
+            if (r4 == 0) goto finish_schar using r5     // check for stack empty
             r4 := r4 - 1
-            m[r0][value_stack_depth] := r4
-            pop stack r3
-            goto loop_remval
+            m[r0][value_stack_depth] := r4              // decrement depth
+            pop stack r3                                // pop a value
+            goto loop_remval                            // loop til empty
 
         goto finish_schar
 
+    // Input error output
     input_error:
         output "Unknown character '"
         r4 := r4 + 48
@@ -292,33 +349,36 @@
         output "'\n"
         goto finish_schar
 
+    // Go back to waiting state after getting a non-numeral
     finish_schar:
         pop r4 off stack r2
-        //pop r3 off stack r2
         pop r1 off stack r2
 
         goto waiting
 
+    // Go back to entering state after getting a numeral
     finish_digit:
         pop r4 off stack r2
-        //pop r3 off stack r2
         pop r1 off stack r2
 
         goto entering
         
-    
+    // Output divide by 0 error
     divide_error:
         output "Division by zero\n"
         goto finish_schar
 
+    // Output underflow with 1 element message, go back to entering
     underflow_error_1:
         output "Stack underflow---expected at least 1 element\n"
         goto finish_schar
 
+    // Output underflow with 2 element message, go back to entering
     underflow_error_2:
         output "Stack underflow---expected at least 2 elements\n"
         goto finish_schar
         
+    // Pops r4 (counter) off call stack for bookkeeping, goes back to entering
     finish_newline:
         pop r4 off stack r2
         goto finish_schar using r5

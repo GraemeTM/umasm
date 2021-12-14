@@ -1,5 +1,4 @@
 // printd.ums
-// Takes in a umasm word, outputs the decimal representation
 
 .section init
     .temps r6, r7
@@ -10,12 +9,13 @@
     digits_stack:
 
 .section text
+    // Takes binary input, outputs to command line as decimal number
     printd: 
         push r1 on stack r2         // return address
         push r3 on stack r2         // keep value stack safe
         push r4 on stack r2        
 
-        output ">>> " 
+        output ">>> "               // make output pretty
 
         // let r1 hold digit stack
         r1 := digits_stack
@@ -26,6 +26,7 @@
         // r3 holds original value
         r3 := m[r0][r2]         // we want data in r4
 
+        // handle special cases
         if (r3 == 0) goto zero_case
         if (r3 <s 0) goto most_negative using r5
 
@@ -33,32 +34,36 @@
     loop:
         r4 := r4 + 1            // increment counter
         r5 := r3 mod 10         // get last digit
-        push r5 on stack r1     // 
+        push r5 on stack r1     // push digit onto digit stack
 
-        r3 := r3 / 10           // modify original
+        r3 := r3 / 10           // modify original value
 
-        if (r3 == 0) goto print_digits       // base case
+        if (r3 == 0) goto print_digits     // base case, print all digits in stk
         goto loop
 
         
+    // Takes all digits on digit stack and prints them one by one until empty
     print_digits:
-        pop r5 off stack r1
-        output r5 + 48
-        r4 := r4 - 1
-        if (r4 == 0) goto finish
-        goto print_digits
+        pop r5 off stack r1             // get digit
+        output r5 + 48                  // output as number character
+        r4 := r4 - 1                    // decrement counter
+        if (r4 == 0) goto finish        // if counter is 0, exit
+        goto print_digits               // else loop
 
+    // Just prints 0 and exits
     zero_case:
-        r7 := 48
+        r7 := 48    
         output r7
         goto finish
 
+    // Checks for most negative number
     most_negative:
-        output 45
+        output 45                               // output negative sign
         if (r3 >s 0) goto continue using r5     // most negative
-        r3 := r3 * -1
+        r3 := r3 * -1                           // change sign of num
         goto loop                               // else start loop
 
+    // output the most negative number (gross, but safe)
     continue:
         r7 := 0x80000000
         // -2147483648
@@ -74,6 +79,7 @@
         output 56
         goto finish using r5
 
+    // outputs newline, restores callstack, goes back to r1
     finish:
         output "\n"
         pop r4 off stack r2

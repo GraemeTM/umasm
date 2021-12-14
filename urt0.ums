@@ -4,36 +4,35 @@
     .temps r6, r7
     .zero r0
 
+// callstack
 .section stk
     .space 10000000
     endstack:
 
+// value stack
 .section stk
     .space 10000000
     value_stack:
 
+// value stack depth (how many elems on value stack)
 .section data
     .space 1
     value_stack_depth:
 
+// init zero and callstack pointer
 .section init
     r0 := 0
     r2 := endstack
 
-
 .section text
     main:
-        m[r0][value_stack_depth] := 0
-        //r5 := m[r0][value_stack_depth]
-        //m[r0][value_stack_depth] := r5 + 1
+        m[r0][value_stack_depth] := 0       // init value stack depth to 0
 
-        //output m[r0][value_stack_depth]
-
+    // waiting on new numeral
     waiting:
         r1 := input()
 
-    waiting_with_character:
-        // need to check for EOF (not sure how to do this)
+        // need to check for EOF 
         if (r1 == -1) goto exit using r5
 
         // branch indirect through jump table
@@ -56,5 +55,6 @@
         r5 := 1                     // r5 gets 1 indicating entering
         goto r1
 
+    // exit program!
     exit:
         halt
