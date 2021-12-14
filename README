@@ -1,0 +1,126 @@
+/**************************************************************
+ *
+ *                     README
+ *
+ *     Assignment: COMP40 Homework 8 - UMASM
+ *     Authors:  Graeme McDonough, Unnathy Nellutla (unellu01)
+ *     Date:     12/14/21
+ *
+ **************************************************************/
+
+/* * * * * * * * * * Acknowledgements * * * * * * * * * */
+
+- Help from TAs during office hours
+- Lecture slides
+
+/* * * * * * * * * * Correctly Implemented * * * * * * * * * */
+Our code passes our tests so it is correct to our knowledge.
+
+/* * * * * * * * * Departures from Design * * * * * * * * */
+
+1. Structure to represent Segments 
+2. Structure to hold available segment IDs
+3. Interaction between modules was more than we 
+    planned for. 
+    Ex: Um module interacts with execute instructions.
+
+/* * * * * * * * * * Architecture * * * * * * * * * */
+Module 1: memory
+Sequence of UArrays address table to hold segments
+Outer Sequence “Memory”: represents segment (void * points to Sequence)
+Inner UAray “Segment”: Contains 32-bit words of size specified by program
+Separate Sequence: represents unmapped segment IDs
+Contains segment IDs available to reuse & overwrite 
+within memory stored as pointers. Next available segment is gotten
+from the sequence, or if there are none it is added at the end of memory.
+
+Module 2: registers 
+UArray of size 8 containing 8 32-bit registers
+Used by execute instructions (module 3)
+
+Module 3: execute instructions
+14 functions to call represented by enumerated types
+Helper functions for overlapping functionalities
+Manipulates & accesses memory (module 1) & registers (module 2)
+
+Module 4: unpack words
+Unpack next 32-bit word using Bitpack
+Calls respective function in execute instructions (module 3)
+
+Module 5: file reading
+Reads UM binary file
+Stores words in 0 segment in memory (module 1)
+
+Driver: UM program
+Reads input file by calling file reading function (module 5)
+Gets next word as indicated by program counter (offset value within 0 segment)
+Decodes word & executes instruction by calling unpack words function (module 4)
+And execute instructions function (module 3)
+
+
+    
+/* * * * * * * * * * 50 million instructions * * * * * * * * * */
+
+It took our um 12.58 seconds to execute midmark, which was around 
+30,000 instructions. So for 50,000,000 instructions, we expect it to 
+take about 350 minutes, so about 6 hours. We know the time from the 
+profiling tool from the lab.
+
+/* * * * * * * * * * Hours spent * * * * * * * * * */
+
+Hours spent analyzing:
+3h
+
+Hours spent preparing design:
+4h
+
+Hours spent solving problems:
+30h
+
+/* * * * * * * * * * Tests * * * * * * * * * */
+add.um
+adds together values stored in registers 2 and 3
+and puts it into register 1. Then it prints 
+Register 1 twice and registers 2 and 3 to make
+sure the values are still in the registers. 
+Expected sum is 78, which is N in ascii.
+cond-move.um
+Loads nonzero values to r3 and r2.
+Tests conditional move by checking if 
+the value in r2 is moved to r1.
+divide.um
+Loads values in registers r2 and r3 and outputs
+them divided by each other to test division.
+halt-verbose.um
+Checks if the program reads instructions after halt.
+No expected output.
+halt.um
+Calls halt to test it. No expected output.
+input.um
+Takes a character input and outputs it. Should be the same character. 
+Tests input and output. 
+load_program.um
+Tests load program by mapping two segments and 
+then setting the program counter in the segment to be loaded,
+so that it starts there when load program is called.
+load-program-jump.um
+Tests load program jumping in segment 0.
+map-seg.um
+Map a segment and output the segment id to check
+if it was mapped.
+map-segment.um
+map and unmap a segment, output the segment id that was 
+unmapped.
+multiply.um
+Multiplies two values stored in registers and outputs it. 
+nand.um
+Nands 0 and 0 together to test nand. 
+output-load-val.um
+Tests load value by outputting values stored in registers.
+output.um
+Outputs values loaded into r1.
+seg-load.um
+seg-store.um
+Both of these use segment load and segment store to get values
+in and out of memory and output them.
+unmap-seg.um

@@ -1,0 +1,55 @@
+/**************************************************************
+ *
+ *                     README
+ *
+ *     Assignment: COMP40 Homework 8 - UMASM
+ *     Authors:  Graeme McDonough, Unnathy Nellutla (unellu01)
+ *     Date:     12/14/21
+ *
+ **************************************************************/
+
+/* * * * * * * * * * Acknowledgements * * * * * * * * * */
+
+- Help from TAs during office hours
+- Lecture slides
+
+/* * * * * * * * * * Correctly Implemented * * * * * * * * * */
+Our code matches the reference for tests up to a million instructions 
+so it is correct to our knowledge.
+
+/* * * * * * * * * Departures from Calling Convention * * * * * * * * */
+
+
+
+/* * * * * * * * * * Print Module * * * * * * * * * */
+
+In a loop we pushed each digit of the number onto a stack using the mod 
+and division operators, then popped them off the stack and printed 
+them at the end. 
+
+/* * * * * * * * * * Value Stack * * * * * * * * * */
+
+We allocated space for a stack and stored the address in r3, and we also
+kept track of the size of the stack in a separately allocated word
+so we could check if operations were possible.
+    
+/* * * * * * * * * * Sections * * * * * * * * * */
+
+init- Used for setting registers r6, r7 as temps,
+r0 as 0, initializing jump table, setting r2 and r3 to 
+callstack and value stack addresses.
+stk- Allocating memory for call stack, value stack, and
+stack for print digits.
+data- Allocate space for value counter. 
+rodata- Allocate space for jumptable. 
+text- Used for main program code and functions.
+/* * * * * * * * * * Hours spent * * * * * * * * * */
+
+Hours spent analyzing:
+1h
+
+Hours spent writing assembly:
+10h
+
+Hours spent debugging:
+3h
